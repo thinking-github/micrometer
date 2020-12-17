@@ -1,0 +1,62 @@
+// maven-publish  deploy plugin
+// apply from: "$rootDir/gradle/publish-maven.gradle"
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+
+repositories {
+	mavenLocal()
+	maven {
+		url "https://maven.aliyun.com/nexus/content/groups/public/"
+	}
+}
+
+ext {
+	MAVEN_REPO_RELEASE_URL = "http://public-maven.apuscn.com/nexus/content/repositories/releases/"
+	MAVEN_REPO_SNAPSHOT_URL = "http://public-maven.apuscn.com/nexus/content/repositories/snapshots/"
+	USER_NAME = System.getenv("USER_NAME")
+	PASSWORD = System.getenv("PASSWORD")
+}
+
+task packageSources(type: Jar) {
+	classifier = 'sources'
+	from sourceSets.main.allSource
+}
+
+publishing {
+	repositories {
+		//configure(rootProject.ext.releaseRepos)
+		maven {
+			def releasesUrl = MAVEN_REPO_RELEASE_URL
+			def snapshotsUrl = MAVEN_REPO_SNAPSHOT_URL
+			url = snapshotsUrl
+			println("private maven url : "+url)
+			credentials {
+				username = USER_NAME
+				password = PASSWORD
+			}
+		}
+	}
+	publications {
+		mavenJava(MavenPublication) {
+			groupId project.group
+			artifactId project.name
+			version project.version
+			from components.java
+
+			artifact packageSources {
+				classifier "sources"
+			}
+
+		}
+	}
+}
+
+uploadArchives {
+	repositories.mavenDeployer {
+		def snapshotsUrl = MAVEN_REPO_SNAPSHOT_URL
+		snapshotRepository(url: snapshotsUrl) {
+			authentication(userName:USER_NAME , password: PASSWORD)
+		}
+	}
+}
+
